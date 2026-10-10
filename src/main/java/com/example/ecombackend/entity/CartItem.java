@@ -21,7 +21,9 @@ public class CartItem {
     @JoinColumn(name = "cart_id",nullable = false)
     private Cart cart;
 
-    // Join product
+    @ManyToOne
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
     @Column(nullable = false)
     private Integer quantity;

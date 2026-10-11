@@ -1,4 +1,4 @@
-package com.example.ecommerce.dto;
+package com.example.ecombackend.dto;
 
 import lombok.*;
 

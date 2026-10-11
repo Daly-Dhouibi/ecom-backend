@@ -1,6 +1,6 @@
-package com.example.ecommerce.dto;
+package com.example.ecombackend.dto;
 
-import com.example.ecommerce.dto.CartItemResponse;
+import com.example.ecombackend.dto.CartItemResponse;
 import lombok.*;
 
 import java.math.BigDecimal;

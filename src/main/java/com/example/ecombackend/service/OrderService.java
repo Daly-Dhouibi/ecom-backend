@@ -11,6 +11,7 @@ import com.example.ecombackend.repository.CartRepository;
 import com.example.ecombackend.repository.OrderRepository;
 import com.example.ecombackend.repository.ProductRepository;
 import com.example.ecombackend.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -35,8 +36,7 @@ public class OrderService {
         this.userRepository = userRepository;
     }
 
-
-
+    @Transactional
     public OrderResponse createOrderFromCart(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
@@ -130,6 +130,7 @@ public class OrderService {
         return toOrderResponse(order);
     }
 
+    @Transactional
     public OrderResponse updateOrderStatus(Long orderId, OrderStatusRequest request) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));

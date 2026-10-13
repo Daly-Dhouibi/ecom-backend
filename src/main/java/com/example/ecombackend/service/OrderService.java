@@ -4,12 +4,14 @@ import com.example.ecombackend.dto.OrderItemResponse;
 import com.example.ecombackend.dto.OrderResponse;
 import com.example.ecombackend.dto.OrderStatusRequest;
 import com.example.ecombackend.entity.*;
+import com.example.ecombackend.exception.BadRequestException;
+import com.example.ecombackend.exception.InsufficientStockException;
+import com.example.ecombackend.exception.ResourceNotFoundException;
 import com.example.ecombackend.repository.CartRepository;
 import com.example.ecombackend.repository.OrderRepository;
 import com.example.ecombackend.repository.ProductRepository;
 import com.example.ecombackend.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -40,22 +42,22 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         if (user.getRole() == Role.ROLE_ADMIN) {
-          //exception administrators are not allowed to place orders
+            throw new BadRequestException("Administrators are not permitted to place orders");
         }
 
         Cart cart = cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user: " + username));
 
         if (cart.getCartItems() == null || cart.getCartItems() .isEmpty()) {
-            //exception cannot create order from an empty cart
+            throw new BadRequestException("Cannot create order from an empty cart");
         }
 
         // 1. Validate
         for (CartItem cartItem : cart.getCartItems()) {
             Product product = cartItem.getProduct();
             if (cartItem.getQuantity() > product.getStockQuantity()) {
-               // exception insufficient stock for product
-
+                throw new InsufficientStockException("Insufficient stock for product '" + product.getName()
+                        + "'. Available: " + product.getStockQuantity() + ", In Cart: " + cartItem.getQuantity());
             }
         }
 
@@ -122,7 +124,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
         if (!isAdmin && !order.getCustomer().getUsername().equals(username)) {
-          // exception access denied
+            throw new BadRequestException("Access denied: You can only view your own orders");
         }
 
         return toOrderResponse(order);

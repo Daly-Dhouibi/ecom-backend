@@ -8,6 +8,9 @@ import com.example.ecombackend.entity.CartItem;
 import com.example.ecombackend.entity.Product;
 import com.example.ecombackend.entity.User;
 import com.example.ecombackend.dto.CartResponse;
+import com.example.ecombackend.exception.BadRequestException;
+import com.example.ecombackend.exception.InsufficientStockException;
+import com.example.ecombackend.exception.ResourceNotFoundException;
 import com.example.ecombackend.repository.CartItemRepository;
 import com.example.ecombackend.repository.CartRepository;
 import com.example.ecombackend.repository.ProductRepository;
@@ -86,12 +89,12 @@ public class CartService {
     public CartResponse addItemToCart(String username,
                                       CartItemRequest request) {
         if (request.getQuantity() <= 0) {
-           //exception invalid quantity
+            throw new BadRequestException("Quantity must be greater than zero");
         }
 
         User user = getUserByUsername(username);
         if (user.getRole() == com.example.ecombackend.entity.Role.ROLE_ADMIN) {
-           //exception can't order
+            throw new BadRequestException("Administrators are not permitted to add items to cart or make purchases");
         }
         Cart cart = getOrCreateCartForUser(user);
 
@@ -107,7 +110,8 @@ public class CartService {
         }
 
         if (targetQuantity > product.getStockQuantity()) {
-            //exception
+            throw new InsufficientStockException("Insufficient stock for product '" + product.getName()
+                    + "'. Available: " + product.getStockQuantity() + ", Requested: " + targetQuantity);
         }
 
         if (existingItemOpt.isPresent()) {
@@ -134,8 +138,9 @@ public class CartService {
     public CartResponse updateCartItemQuantity(String username, Long cartItemId,
                                                CartItemUpdateRequest request) {
         if (request.getQuantity() <= 0) {
-            //exception
+            throw new BadRequestException("Quantity must be greater than zero");
         }
+
 
         User user = getUserByUsername(username);
         Cart cart = getOrCreateCartForUser(user);
@@ -144,12 +149,13 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart item not found with id: " + cartItemId));
 
         if (!cartItem.getCart().getId().equals(cart.getId())) {
-            //exception
+            throw new BadRequestException("Cart item does not belong to your cart");
         }
 
         Product product = cartItem.getProduct();
         if (request.getQuantity() > product.getStockQuantity()) {
-            //exception
+            throw new InsufficientStockException("Insufficient stock for product '" + product.getName()
+                    + "'. Available: " + product.getStockQuantity() + ", Requested: " + request.getQuantity());
         }
 
         cartItem.setQuantity(request.getQuantity());
@@ -166,7 +172,7 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart item not found with id: " + cartItemId));
 
         if (!cartItem.getCart().getId().equals(cart.getId())) {
-            //exception
+            throw new BadRequestException("Cart item does not belong to your cart");
         }
 
         cart.getCartItems().remove(cartItem);

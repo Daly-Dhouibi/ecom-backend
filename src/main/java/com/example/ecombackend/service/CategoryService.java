@@ -3,6 +3,8 @@ package com.example.ecombackend.service;
 import com.example.ecombackend.dto.CategoryRequest;
 import com.example.ecombackend.dto.CategoryResponse;
 import com.example.ecombackend.entity.Category;
+import com.example.ecombackend.exception.BadRequestException;
+import com.example.ecombackend.exception.ResourceNotFoundException;
 import com.example.ecombackend.repository.CategoryRepository;
 import com.example.ecombackend.repository.ProductRepository;
 import org.springframework.stereotype.Service;
@@ -39,7 +41,7 @@ public class CategoryService {
     }
     public CategoryResponse createCategory(CategoryRequest categoryRequest) {
         if (categoryRepository.existsByName(categoryRequest.getName())) {
-           // exception
+            throw new BadRequestException("Category with name '" + categoryRequest.getName() + "' already exists");
         }
         Category category = Category.builder()
                 .name(categoryRequest.getName())
@@ -55,7 +57,7 @@ public class CategoryService {
         // If changing name, ensure uniqueness
         if (!category.getName().equalsIgnoreCase(request.getName().trim())
                 && categoryRepository.existsByName(request.getName().trim())) {
-          //exception : name changed => uniqueness
+            throw new BadRequestException("Category with name '" + request.getName() + "' already exists");
         }
 
         category.setName(request.getName().trim());
@@ -69,7 +71,7 @@ public class CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
 
         if (!productRepository.findByCategoryId(id).isEmpty()) {
-          //exception
+            throw new BadRequestException("Cannot delete category because products are assigned to it");
         }
         categoryRepository.delete(category);
     }

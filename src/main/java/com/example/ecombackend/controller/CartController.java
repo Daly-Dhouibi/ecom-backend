@@ -21,20 +21,20 @@ public class CartController {
     }
 
     @GetMapping
-    public ResponseEntity<CartResponse> getCart(User user) {
-        CartResponse cart = cartService.getCartForUsername(user.getFirstName());
+    public ResponseEntity<CartResponse> getCart(Principal principal) {
+        CartResponse cart = cartService.getCartForUsername(principal.getName());
         return ResponseEntity.ok(cart);
     }
     @PostMapping("/items")
-    public ResponseEntity<CartResponse> addItemToCart(User user,
+    public ResponseEntity<CartResponse> addItemToCart(Principal principal,
                                                       @Valid @RequestBody CartItemRequest request){
-        return ResponseEntity.ok(cartService.addItemToCart(user.getUsername(), request));
+        return ResponseEntity.ok(cartService.addItemToCart(principal.getName(), request));
     }
     @PutMapping("/items/{id}")
-    public ResponseEntity<CartResponse> updateItemQuantity(User user,
+    public ResponseEntity<CartResponse> updateItemQuantity(Principal principal,
                                                            @PathVariable Long id,
                                                            @Valid @RequestBody CartItemUpdateRequest request) {
-        CartResponse cart = cartService.updateCartItemQuantity(user.getUsername(), id, request);
+        CartResponse cart = cartService.updateCartItemQuantity(principal.getName(), id, request);
         return ResponseEntity.ok(cart);
     }
     @DeleteMapping("/items/{id}")

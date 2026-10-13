@@ -4,6 +4,7 @@ import com.example.ecombackend.dto.ProductRequest;
 import com.example.ecombackend.dto.ProductResponse;
 import com.example.ecombackend.entity.Category;
 import com.example.ecombackend.entity.Product;
+import com.example.ecombackend.exception.ResourceNotFoundException;
 import com.example.ecombackend.repository.CategoryRepository;
 import com.example.ecombackend.repository.ProductRepository;
 import org.springframework.stereotype.Service;

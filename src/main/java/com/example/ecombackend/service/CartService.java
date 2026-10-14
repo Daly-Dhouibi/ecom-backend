@@ -49,10 +49,8 @@ public class CartService {
                 });
     }
     public CartResponse getCartForUsername(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+        User user = getUserByUsername(username);
+        Cart cart = getOrCreateCartForUser(user);
         return toCartResponse(cart);
     }
     // cart mapper
@@ -135,6 +133,8 @@ public class CartService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
+
+
     public CartResponse updateCartItemQuantity(String username, Long cartItemId,
                                                CartItemUpdateRequest request) {
         if (request.getQuantity() <= 0) {

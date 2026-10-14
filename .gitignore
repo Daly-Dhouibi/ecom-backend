@@ -18,7 +18,7 @@ target/
 *.iws
 *.iml
 *.ipr
-
+CODE_REVIEW.md
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

@@ -35,33 +35,35 @@ public class OrderService {
         this.productRepository = productRepository;
         this.userRepository = userRepository;
     }
-
+    
     @Transactional
     public OrderResponse createOrderFromCart(String username) {
+
+        // 1. Find user
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with username: " + username
+                ));
 
         if (user.getRole() == Role.ROLE_ADMIN) {
-            throw new BadRequestException("Administrators are not permitted to place orders");
+            throw new BadRequestException(
+                    "Administrators are not permitted to place orders"
+            );
         }
 
+        // 2. Find cart
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Cart not found for user: " + username
+                ));
 
-        if (cart.getCartItems() == null || cart.getCartItems() .isEmpty()) {
-            throw new BadRequestException("Cannot create order from an empty cart");
+        if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
+            throw new BadRequestException(
+                    "Cannot create order from an empty cart"
+            );
         }
 
-        // 1. Validate
-        for (CartItem cartItem : cart.getCartItems()) {
-            Product product = cartItem.getProduct();
-            if (cartItem.getQuantity() > product.getStockQuantity()) {
-                throw new InsufficientStockException("Insufficient stock for product '" + product.getName()
-                        + "'. Available: " + product.getStockQuantity() + ", In Cart: " + cartItem.getQuantity());
-            }
-        }
-
-        // 2. Init
+        // 3. Initialize order
         Order order = Order.builder()
                 .customer(user)
                 .status(OrderStatus.PENDING)
@@ -71,37 +73,57 @@ public class OrderService {
 
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        // 3. Create OrderItems etc...
+        // 4. Create order items and atomically decrease stock
         for (CartItem cartItem : cart.getCartItems()) {
+
             Product product = cartItem.getProduct();
+            Integer quantity = cartItem.getQuantity();
+
+            // Atomically check and decrease stock
+            int updated = productRepository.decrementStockIfAvailable(
+                    product.getId(),
+                    quantity
+            );
+
+            if (updated == 0) {
+                throw new InsufficientStockException(
+                        "Insufficient stock for product '"
+                                + product.getName() + "'."
+                );
+            }
+
+            // Create order item
             BigDecimal itemPrice = product.getPrice();
+
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)
-                    .quantity(cartItem.getQuantity())
+                    .quantity(quantity)
                     .price(itemPrice)
                     .build();
 
             order.getItems().add(orderItem);
 
-            BigDecimal lineTotal = itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            // Calculate total
+            BigDecimal lineTotal = itemPrice.multiply(
+                    BigDecimal.valueOf(quantity)
+            );
+
             totalAmount = totalAmount.add(lineTotal);
-            // 4. Decrease product stock
-            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-            productRepository.save(product);
         }
 
+        // 5. Save order
         order.setTotalAmount(totalAmount);
+
         Order savedOrder = orderRepository.save(order);
 
-        // 5. Clear the cart
+        // 6. Clear cart
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
+        // 7. Return response
         return toOrderResponse(savedOrder);
     }
-
-
 
     public List<OrderResponse> getOrdersForUser(String username) {
         return orderRepository.findByCustomerUsernameOrderByCreatedDateDesc(username).stream()
